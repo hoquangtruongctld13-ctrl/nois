@@ -413,7 +413,10 @@ dist/
 
 ## 6. Build EXE với Nuitka
 
-Nuitka tạo exe tối ưu hơn PyInstaller nhưng build lâu hơn.
+> ⚠️ **QUAN TRỌNG**: Để build với Nuitka đảm bảo VieNeu-TTS được compile thành C (không chỉ import),
+> vui lòng tham khảo tài liệu chi tiết tại **[NUITKA_BUILD_GUIDE.md](NUITKA_BUILD_GUIDE.md)**.
+
+Nuitka tạo exe tối ưu hơn PyInstaller vì compile Python thành C.
 
 ### 6.1 Cài Đặt Nuitka
 
@@ -422,12 +425,21 @@ pip install nuitka
 pip install ordered-set zstandard  # Dependencies
 ```
 
-### 6.2 Build Command
+### 6.2 Build Script Tự Động (Khuyến nghị)
+
+```bash
+# Windows
+build_nuitka.bat
+
+# Linux/macOS
+./build_nuitka.sh
+```
+
+### 6.3 Build Command Thủ Công
 
 ```bash
 python -m nuitka ^
     --standalone ^
-    --onefile ^
     --enable-plugin=tk-inter ^
     --enable-plugin=numpy ^
     --include-package=vieneu_tts ^
@@ -439,34 +451,25 @@ python -m nuitka ^
     --include-package=torch ^
     --include-package=torchaudio ^
     --include-package=customtkinter ^
-    --include-data-dir=VieNeu-TTS=VieNeu-TTS ^
-    --include-data-dir=edge=edge ^
+    --include-module=auth_module ^
+    --include-data-dir=VieNeu-TTS/sample=VieNeu-TTS/sample ^
+    --include-data-dir=VieNeu-TTS/utils=VieNeu-TTS/utils ^
+    --include-data-files=VieNeu-TTS/config.yaml=VieNeu-TTS/config.yaml ^
     --include-data-files=icon.ico=icon.ico ^
     --windows-disable-console ^
     --windows-icon-from-ico=icon.ico ^
     --output-dir=dist ^
-    --output-filename=FathTTS.exe ^
     main.py
 ```
 
-### 6.3 Nuitka Multi-file Build (Khuyến nghị)
+### 6.4 Kết quả Build
 
-```bash
-python -m nuitka ^
-    --standalone ^
-    --enable-plugin=tk-inter ^
-    --enable-plugin=numpy ^
-    --include-package=vieneu_tts ^
-    --include-package=utils ^
-    --include-package=llama_cpp ^
-    --include-data-dir=VieNeu-TTS/sample=VieNeu-TTS/sample ^
-    --include-data-dir=VieNeu-TTS/utils=VieNeu-TTS/utils ^
-    --include-data-files=VieNeu-TTS/config.yaml=VieNeu-TTS/config.yaml ^
-    --windows-disable-console ^
-    --windows-icon-from-ico=icon.ico ^
-    --output-dir=dist ^
-    main.py
-```
+Sau khi build thành công với Nuitka:
+- **VieNeu-TTS modules** (vieneu_tts, utils) sẽ được compile thành `.pyd` (Windows) hoặc `.so` (Linux)
+- **Data files** (samples, phoneme_dict.json, config.yaml) sẽ được copy vào thư mục output
+- File exe sẽ chứa toàn bộ logic VieNeu-TTS được compile, không chỉ import
+
+Xem **[NUITKA_BUILD_GUIDE.md](NUITKA_BUILD_GUIDE.md)** để biết chi tiết đầy đủ.
 
 ---
 

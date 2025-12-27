@@ -2,15 +2,52 @@ import os
 import json
 import platform
 import glob
+import sys
 from phonemizer import phonemize
 from phonemizer.backend.espeak.espeak import EspeakWrapper
 from utils.normalize_text import VietnameseTTSNormalizer
 
 # Configuration
-PHONEME_DICT_PATH = os.getenv(
-    'PHONEME_DICT_PATH',
-    os.path.join(os.path.dirname(__file__), "phoneme_dict.json")
-)
+# For compiled builds (Nuitka/PyInstaller), data files are copied to specific locations
+# We need to search in multiple locations to find phoneme_dict.json
+
+def _find_phoneme_dict():
+    """
+    Find the phoneme_dict.json file.
+    Searches in multiple locations for compatibility with:
+    - Development mode (running as script)
+    - Nuitka compiled builds
+    - PyInstaller builds
+    """
+    # Location 1: Same directory as this module (development mode)
+    module_dir = os.path.dirname(os.path.abspath(__file__))
+    path1 = os.path.join(module_dir, "phoneme_dict.json")
+    
+    # Location 2: Environment variable override
+    env_path = os.getenv('PHONEME_DICT_PATH')
+    
+    # Location 3: Relative to executable (Nuitka/PyInstaller)
+    # Only set when running as compiled executable
+    path2 = None
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(sys.executable)
+        path2 = os.path.join(exe_dir, "VieNeu-TTS", "utils", "phoneme_dict.json")
+    
+    # Location 4: Fallback - check common patterns
+    # For Nuitka standalone builds, data might be in the dist folder
+    path3 = os.path.join(os.getcwd(), "VieNeu-TTS", "utils", "phoneme_dict.json")
+    
+    # Search order: env variable > module dir > exe dir > cwd
+    search_paths = [p for p in [env_path, path1, path2, path3] if p]
+    
+    for path in search_paths:
+        if path and os.path.exists(path):
+            return path
+    
+    # Default fallback (will raise error if not found)
+    return path1
+
+PHONEME_DICT_PATH = _find_phoneme_dict()
 
 def load_phoneme_dict(path=PHONEME_DICT_PATH):
     """Load phoneme dictionary from JSON file."""
