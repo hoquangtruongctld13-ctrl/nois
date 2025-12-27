@@ -71,7 +71,9 @@ pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-c
 if errorlevel 1 (
     echo [WARNING] Không thể cài llama-cpp-python từ wheel.
     echo          Thử build từ source...
-    cmd /c "set CMAKE_ARGS=-DLLAMA_BLAS=OFF -DLLAMA_CUBLAS=OFF && pip install llama-cpp-python --no-cache-dir --force-reinstall" >nul 2>&1
+    :: Set CMAKE_ARGS in current environment then run pip
+    set "CMAKE_ARGS=-DLLAMA_BLAS=OFF -DLLAMA_CUBLAS=OFF"
+    pip install llama-cpp-python --no-cache-dir --force-reinstall >nul 2>&1
 )
 
 :: PyTorch CPU

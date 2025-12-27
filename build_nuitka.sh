@@ -21,7 +21,11 @@ echo "[1/6] Kiểm tra môi trường..."
 # Check Python version
 if ! python3.12 --version &> /dev/null; then
     echo -e "${RED}[ERROR] Python 3.12 is required!${NC}"
-    echo "Install with: sudo apt install python3.12 python3.12-venv python3.12-dev"
+    echo "Installation methods:"
+    echo "  Ubuntu/Debian: sudo add-apt-repository ppa:deadsnakes/ppa && sudo apt update && sudo apt install python3.12 python3.12-venv python3.12-dev"
+    echo "  Fedora: sudo dnf install python3.12"
+    echo "  macOS: brew install python@3.12"
+    echo "  Or download from: https://www.python.org/downloads/"
     exit 1
 fi
 echo -e "      ${GREEN}✓${NC} Python 3.12 OK"
@@ -70,8 +74,13 @@ pip install ordered-set zstandard -q
 
 # llama-cpp-python (CPU)
 echo "      - llama-cpp-python (CPU)..."
-pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu -q 2>/dev/null || \
-    CMAKE_ARGS="-DLLAMA_BLAS=OFF -DLLAMA_CUBLAS=OFF" pip install llama-cpp-python --no-cache-dir --force-reinstall -q
+if ! pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu -q 2>/dev/null; then
+    echo -e "${YELLOW}[INFO] Trying to build llama-cpp-python from source...${NC}"
+    if ! CMAKE_ARGS="-DLLAMA_BLAS=OFF -DLLAMA_CUBLAS=OFF" pip install llama-cpp-python --no-cache-dir --force-reinstall -q 2>/dev/null; then
+        echo -e "${RED}[WARNING] Failed to install llama-cpp-python. GGUF models may not work.${NC}"
+        echo "          See: https://github.com/abetlen/llama-cpp-python for manual installation."
+    fi
+fi
 
 # PyTorch CPU
 echo "      - PyTorch (CPU)..."

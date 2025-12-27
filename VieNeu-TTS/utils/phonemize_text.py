@@ -27,11 +27,11 @@ def _find_phoneme_dict():
     env_path = os.getenv('PHONEME_DICT_PATH')
     
     # Location 3: Relative to executable (Nuitka/PyInstaller)
+    # Only set when running as compiled executable
+    path2 = None
     if getattr(sys, 'frozen', False):
         exe_dir = os.path.dirname(sys.executable)
         path2 = os.path.join(exe_dir, "VieNeu-TTS", "utils", "phoneme_dict.json")
-    else:
-        path2 = None
     
     # Location 4: Fallback - check common patterns
     # For Nuitka standalone builds, data might be in the dist folder
