@@ -22,10 +22,41 @@ import sys
 import concurrent.futures
 from urllib.parse import quote
 
-# Add edge module path
-_edge_module_path = os.path.dirname(os.path.abspath(__file__))
-if _edge_module_path not in sys.path:
-    sys.path.insert(0, _edge_module_path)
+# =============================================================================
+# PATH SETUP FOR NUITKA/PYINSTALLER COMPATIBILITY
+# =============================================================================
+# This section sets up paths for VieNeu-TTS and edge modules to work correctly
+# both in development mode and when compiled with Nuitka/PyInstaller.
+#
+# For Nuitka builds: These modules will be compiled to C and the paths help
+# locate data files (samples, phoneme_dict.json, config.yaml) at runtime.
+# =============================================================================
+
+def _get_base_path():
+    """
+    Get the base path of the application.
+    Works for both development and compiled (Nuitka/PyInstaller) builds.
+    """
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable (Nuitka or PyInstaller)
+        # For Nuitka standalone, use the directory containing the executable
+        return os.path.dirname(sys.executable)
+    else:
+        # Running as script
+        return os.path.dirname(os.path.abspath(__file__))
+
+# Base path for the application
+_BASE_PATH = _get_base_path()
+
+# Add application base path to sys.path (for edge module)
+if _BASE_PATH not in sys.path:
+    sys.path.insert(0, _BASE_PATH)
+
+# Add VieNeu-TTS path to sys.path
+# This allows importing vieneu_tts and utils modules
+_VIENEU_TTS_PATH = os.path.join(_BASE_PATH, "VieNeu-TTS")
+if os.path.exists(_VIENEU_TTS_PATH) and _VIENEU_TTS_PATH not in sys.path:
+    sys.path.insert(0, _VIENEU_TTS_PATH)
 
 # Import authentication module
 from auth_module import AuthManager, require_login
@@ -227,8 +258,9 @@ EDGE_TTS_GENDERS = ["Tất cả", "Male", "Female"]
 # VN TTS CONFIGURATION (Vietnamese Text-to-Speech)
 # =============================================================================
 
-# VN TTS directory path (relative to main.py)
-VIENEU_TTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "VieNeu-TTS")
+# VN TTS directory path - uses _BASE_PATH for Nuitka/PyInstaller compatibility
+# This path is used to locate voice samples, config files, and other data files
+VIENEU_TTS_DIR = os.path.join(_BASE_PATH, "VieNeu-TTS")
 
 # Model backbone configurations
 VIENEU_BACKBONE_CONFIGS = {
@@ -414,18 +446,15 @@ ERROR_MSG_MAX_LENGTH = 50  # Maximum characters to display in error messages
 def get_app_dir() -> str:
     """
     Lấy thư mục gốc của app.
-    - Nếu chạy từ exe (PyInstaller): trả về thư mục chứa file exe
+    - Nếu chạy từ exe (PyInstaller/Nuitka): trả về thư mục chứa file exe
     - Nếu chạy từ script: trả về thư mục chứa script
     
-    Lưu ý: Không dùng sys._MEIPASS vì đó là thư mục tạm khi giải nén exe
+    Lưu ý: 
+    - Không dùng sys._MEIPASS vì đó là thư mục tạm khi giải nén exe (PyInstaller)
+    - Nuitka standalone builds cũng đặt sys.frozen = True
     """
-    if getattr(sys, 'frozen', False):
-        # Đang chạy từ exe được build bởi PyInstaller
-        # sys.executable = đường dẫn đến file .exe
-        return os.path.dirname(sys.executable)
-    else:
-        # Đang chạy từ script Python
-        return os.path.dirname(os.path.abspath(__file__))
+    # Use the pre-computed _BASE_PATH for consistency
+    return _BASE_PATH
 
 
 def get_default_ffmpeg_path() -> str:
@@ -4219,7 +4248,9 @@ class StudioGUI(ctk.CTk):
                 quant_policy = backbone_config.get("quant_policy", 0)
                 self._vieneu_progress_log(10, "Chuẩn bị cấu hình")
                 
-                # Add VN TTS to path
+                # VieNeu-TTS path is already added to sys.path at module load time
+                # (see _VIENEU_TTS_PATH setup at the top of this file)
+                # This ensures compatibility with both development and Nuitka builds
                 vieneu_path = VIENEU_TTS_DIR
                 if vieneu_path not in sys.path:
                     sys.path.insert(0, vieneu_path)
